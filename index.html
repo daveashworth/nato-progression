@@ -92,6 +92,38 @@
         margin-right: 8px;
         border-radius: 4px;
       }
+      .navigation-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        color: white;
+      }
+      .nav-arrows {
+        display: flex;
+        gap: 10px;
+      }
+      .nav-arrow {
+        cursor: pointer;
+        padding: 8px 12px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        user-select: none;
+      }
+      .nav-arrow:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      .nav-instructions {
+        font-size: 14px;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -111,6 +143,13 @@
             <div class="legend-color" style="background-color: #ff4d6d"></div>
             <span>Russia</span>
           </div>
+        </div>
+        <div class="navigation-controls">
+          <div class="nav-arrows">
+            <div class="nav-arrow" id="prev-btn">←</div>
+            <div class="nav-arrow" id="next-btn">→</div>
+          </div>
+          <div class="nav-instructions">Use keyboard arrows to navigate</div>
         </div>
         <svg></svg>
       </div>
@@ -555,6 +594,17 @@
         // Update previous state after transition
         previousNatoCountries = [...currentNatoCountries]
       }
+
+      // Add click handlers for navigation buttons
+      document.getElementById("prev-btn").addEventListener("click", () => {
+        currentYearIndex = Math.max(currentYearIndex - 1, 0)
+        updateMap()
+      })
+
+      document.getElementById("next-btn").addEventListener("click", () => {
+        currentYearIndex = Math.min(currentYearIndex + 1, natoExpansion.length - 1)
+        updateMap()
+      })
 
       // Add keyboard event listener
       document.addEventListener("keydown", (event) => {
