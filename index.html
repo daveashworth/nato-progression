@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NATO Map with Custom Latitude Cutoff</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #1a365d;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .header {
+        background-color: rgba(0, 0, 0, 0.3);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .map-container {
+        flex: 1;
+        position: relative;
+        background-color: #1a365d;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .tooltip {
+        position: absolute;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        pointer-events: none;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .year {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .description {
+        font-size: 18px;
+        opacity: 0.9;
+      }
+      .legend {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        color: white;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin: 6px 0;
+      }
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="year"></div>
+        <div class="description"></div>
+      </div>
+      <div class="map-container">
+        <div class="tooltip"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #00b4d8"></div>
+            <span>NATO Members</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #ff4d6d"></div>
+            <span>Russia</span>
+          </div>
+        </div>
+        <svg></svg>
+      </div>
+    </div>
+    <script>
+      // List of NATO member countries by year of joining
+      const natoExpansion = [
+        {
+          year: 1949,
+          countries: [
+            "Belgium",
+            "Canada",
+            "Denmark",
+            "France",
+            "Iceland",
+            "Italy",
+            "Luxembourg",
+            "Netherlands",
+            "Norway",
+            "Portugal",
+            "England",
+            "Ireland",
+            "USA",
+          ],
+          description: "NATO Founding Members",
+          isHistoricalContext: false,
+          president: "Harry S. Truman",
+          annotation:
+            "The North Atlantic Treaty Organization is established by 12 founding members, creating a collective defense alliance against the growing Soviet influence in Europe. The treaty's Article 5 establishes that an attack on one member is considered an attack on all.",
+        },
+        {
+          year: 1952,
+          countries: ["Greece", "Turkey"],
+          description: "First Expansion",
+          isHistoricalContext: false,
+          president: "Harry S. Truman",
+          annotation:
+            "Greece and Turkey join simultaneously, extending NATO's southeastern flank and securing the alliance's presence in the eastern Mediterranean. Their admission helps contain Soviet influence in the Balkans and Middle East.",
+        },
+        {
+          year: 1955,
+          countries: ["Germany"],
+          description: "West Germany Joins",
+          isHistoricalContext: false,
+          president: "Dwight D. Eisenhower",
+          annotation:
+            "West Germany's admission marks a significant shift in post-war European security. Despite initial French reservations, West Germany's integration into NATO helps secure Western Europe against Soviet expansion and begins the process of German rehabilitation in Western institutions.",
+        },
+        {
+          year: 1982,
+          countries: ["Spain"],
+          description: "Spain Joins",
+          isHistoricalContext: false,
+          president: "Ronald Reagan",
+          annotation:
+            "Spain joins NATO following its transition to democracy after the Franco dictatorship. This addition strengthens NATO's southern European presence and control of the western Mediterranean, while symbolizing Spain's full integration into Western democratic institutions.",
+        },
+        {
+          year: 1989,
+          countries: [],
+          description: "Fall of the Berlin Wall",
+          isHistoricalContext: true,
+          president: "George H. W. Bush",
+          annotation:
+            "The Berlin Wall falls, symbolizing the end of the Cold War division of Europe. This historic event leads to German reunification and creates new possibilities for European integration and NATO expansion.",
+        },
+        {
+          year: 1991,
+          countries: [],
+          description: "Dissolution of the Soviet Union",
+          isHistoricalContext: true,
+          president: "George H. W. Bush",
+          annotation:
+            "The Soviet Union dissolves into 15 independent states, fundamentally changing the European security landscape. NATO and Russian leadership discuss future security arrangements, with US Secretary of State James Baker assuring Soviet leader Mikhail Gorbachev that NATO would not expand 'one inch eastward'.",
+        },
+        {
+          year: 1994,
+          countries: [],
+          description: "NATO Enlargement Policy Approved",
+          isHistoricalContext: true,
+          president: "Bill Clinton",
+          highlightCountries: ["Georgia", "Ukraine"],
+          annotation:
+            "President Clinton signs off on NATO's 'Partnership for Peace' program and policy of enlargement, marking a shift from earlier assurances. The US and NATO approve potential expansion all the way to Ukraine and Georgia, former Soviet republics, while attempting to build a cooperative relationship with Russia. This expansive vision sets the stage for future tensions with Moscow.",
+        },
+        {
+          year: 1997,
+          countries: [],
+          description: "NATO-Russia Founding Act",
+          isHistoricalContext: true,
+          president: "Bill Clinton",
+          annotation:
+            "NATO and Russia sign the Founding Act on Mutual Relations, Cooperation and Security, establishing the NATO-Russia Council. This agreement aims to build trust and cooperation, while addressing Russia's concerns about NATO expansion.",
+        },
+        {
+          year: 1999,
+          countries: ["Czech Republic", "Hungary", "Poland"],
+          description: "Post-Cold War Expansion",
+          isHistoricalContext: false,
+          president: "Bill Clinton",
+          annotation:
+            "The first post-Cold War expansion brings in three former Warsaw Pact members. This historic step eastward demonstrates NATO's transformation from a Cold War alliance to a broader European security organization, though it raises concerns in Russia about NATO's intentions.",
+        },
+        {
+          year: 2004,
+          countries: ["Bulgaria", "Estonia", "Latvia", "Lithuania", "Romania", "Slovakia", "Slovenia"],
+          description: "Large-scale Expansion",
+          isHistoricalContext: false,
+          president: "George W. Bush",
+          annotation:
+            "The largest single expansion in NATO history includes three Baltic states (former Soviet republics) and four other Eastern European nations. This dramatic enlargement extends NATO's border directly to Russia and consolidates the alliance's presence in Central and Eastern Europe. Russia is pretty damn upset.",
+        },
+        {
+          year: 2007,
+          countries: [],
+          description: "Putin's Munich Speech",
+          isHistoricalContext: true,
+          president: "George W. Bush",
+          annotation:
+            "In a pivotal speech at the Munich Security Conference, Putin forcefully denounces NATO expansion as a 'serious provocation' and violation of previous assurances. He warns that further NATO expansion, particularly regarding Ukraine and Georgia, would cross a 'red line' for Russia's security interests. This speech marks a turning point in Russia-NATO relations and foreshadows future conflicts.",
+        },
+        {
+          year: 2008,
+          countries: [],
+          description: "Bucharest Summit",
+          isHistoricalContext: true,
+          president: "George W. Bush",
+          highlightCountries: ["Georgia", "Ukraine"],
+          annotation:
+            "NATO announces that Georgia and Ukraine 'will become members of NATO', though without setting a specific timeline. This declaration at the Bucharest Summit marks a significant point of tension with Russia, which strongly opposes NATO expansion to these former Soviet states.",
+        },
+        {
+          year: 2008,
+          countries: [],
+          description: "Russo-Georgian War",
+          isHistoricalContext: true,
+          president: "George W. Bush",
+          highlightCountries: ["Georgia"],
+          annotation:
+            "Russia invades Georgia following tensions over the breakaway regions of South Ossetia and Abkhazia. The five-day war results in Russian recognition of these regions as independent states and effectively halts Georgia's NATO aspirations. This conflict demonstrates Russia's willingness to use military force to prevent NATO expansion into former Soviet states.",
+        },
+        {
+          year: 2009,
+          countries: ["Albania", "Croatia"],
+          description: "Balkan Expansion",
+          isHistoricalContext: false,
+          president: "Barack Obama",
+          annotation:
+            "Albania and Croatia join NATO, strengthening the alliance's presence in the Balkans. Their admission represents the successful integration of two more former communist states and helps stabilize a region that experienced significant conflict in the 1990s.",
+        },
+        {
+          year: 2010,
+          countries: [],
+          description: "Missile Defense Shield Deployment",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          highlightCountries: ["Poland", "Romania"],
+          annotation:
+            "The US begins deployment of missile defense systems in Poland and Romania as part of NATO's European Phased Adaptive Approach (EPAA). While NATO insists these systems are designed to counter threats from Iran, Russia views them as a direct threat to its strategic deterrent. This deployment further strains NATO-Russia relations and becomes a major point of contention in subsequent diplomatic exchanges.",
+        },
+        {
+          year: 2010,
+          countries: [],
+          description: "Yanukovych Elected in Ukraine",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          highlightCountries: ["Ukraine"],
+          annotation:
+            "Viktor Yanukovych is elected President of Ukraine, pursuing a policy of non-alignment and closer ties with Russia. Within months, he signs the Kharkiv Accords, extending Russia's lease on the Sevastopol naval base in Crimea until 2042 in exchange for discounted natural gas prices. This agreement significantly deepens Ukraine's economic and military ties with Russia.",
+        },
+        {
+          year: 2014,
+          countries: [],
+          description: "Ukrainian Revolution",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          highlightCountries: ["Ukraine"],
+          annotation:
+            "A leaked call between US Assistant Secretary of State Victoria Nuland and US Ambassador Geoffrey Pyatt reveals active US involvement in Ukraine's political transition. The conversation, discussing preferred leadership changes in Ukraine, surfaces amid protests that lead to President Yanukovych's removal. This marks a critical escalation in US-Russia tensions over Ukraine's political direction.",
+        },
+        {
+          year: 2014,
+          countries: [],
+          description: "Russian Annexation of Crimea",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          annotation:
+            "Russia annexes Crimea from Ukraine and supports separatist movements in eastern Ukraine, leading to the suspension of practical NATO-Russia cooperation. This marks a major deterioration in NATO-Russia relations and increases security concerns among Eastern European NATO members.",
+        },
+        {
+          year: 2014,
+          countries: [],
+          description: "Minsk Protocol",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          highlightCountries: ["Ukraine"],
+          annotation:
+            "The first Minsk agreement is signed by Ukraine, Russia, and separatist leaders under OSCE mediation. The protocol calls for ceasefire, withdrawal of heavy weapons, and special autonomy status for Russian-speaking regions in Donbas. Despite being endorsed by UN Security Council Resolution 2202, the agreement fails to stop the fighting.",
+        },
+        {
+          year: 2015,
+          countries: [],
+          description: "Minsk II Agreement",
+          isHistoricalContext: true,
+          president: "Barack Obama",
+          highlightCountries: ["Ukraine"],
+          annotation:
+            "Following the collapse of the first agreement, the Minsk II accord is signed by Ukraine, Russia, France, and Germany. The agreement reaffirms commitment to Donbas autonomy and is unanimously endorsed by the UN Security Council. However, implementation remains stalled as both sides accuse each other of violations.",
+        },
+        {
+          year: 2017,
+          countries: ["Montenegro"],
+          description: "Montenegro Joins",
+          isHistoricalContext: false,
+          president: "Donald Trump",
+          annotation:
+            "Montenegro becomes NATO's 29th member despite strong opposition from Russia. This expansion further consolidates NATO's presence in the Balkans and demonstrates the alliance's continued open door policy for qualified European democracies.",
+        },
+        {
+          year: 2020,
+          countries: ["North Macedonia"],
+          description: "North Macedonia Joins",
+          isHistoricalContext: false,
+          president: "Donald Trump",
+          annotation:
+            "North Macedonia joins after resolving its name dispute with Greece, becoming NATO's 30th member. This addition further stabilizes the Balkans region and closes another strategic gap in NATO's southeastern flank.",
+        },
+        {
+          year: 2022,
+          countries: [],
+          description: "Russian Invasion of Ukraine",
+          isHistoricalContext: true,
+          president: "Joe Biden",
+          annotation:
+            "Russia launches a full-scale invasion of Ukraine, fundamentally altering European security architecture. This action leads traditionally neutral Finland and Sweden to abandon their long-standing policy of military non-alignment and seek NATO membership, significantly strengthening NATO's northern flank.",
+        },
+        {
+          year: 2023,
+          countries: ["Finland", "Sweden"],
+          description: "Nordic Expansion",
+          isHistoricalContext: false,
+          president: "Joe Biden",
+          annotation:
+            "Finland and Sweden join NATO in a historic shift from their long-standing policies of military non-alignment. Their membership significantly strengthens NATO's northern flank, brings sophisticated military capabilities to the alliance, and effectively turns the Baltic Sea into a 'NATO lake'.",
+        },
+      ]
+
+      let currentYearIndex = 0
+
+      // Function to get all NATO countries up to a specific index
+      function getNatoCountriesUpToIndex(index) {
+        return natoExpansion.slice(0, index + 1).flatMap((entry) => entry.countries)
+      }
+
+      // Define colors.
+      const colorNato = "#00b4d8" // Bright cyan blue for NATO countries
+      const colorNatoNew = "#0077b6" // Darker blue for newly added countries
+      const colorRussia = "#ff4d6d" // Vibrant coral red for Russia
+      const colorOther = "#2f4858" // Dark slate for other countries
+      const colorHighlight = "#ff9e3d" // Warm orange for highlighted countries
+      const strokeColor = "#0a1929" // Darker blue for borders
+
+      // Get full window dimensions.
+      const width = window.innerWidth
+      const height = window.innerHeight
+
+      // Track previous NATO countries for highlighting new ones
+      let previousNatoCountries = []
+
+      // Add year display
+      const yearDisplay = d3
+        .select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("top", "20px")
+        .style("left", "20px")
+        .style("color", "white")
+        .style("font-family", "Arial")
+        .style("font-size", "24px")
+        .style("pointer-events", "none")
+
+      // Update year display elements
+      const yearElement = d3.select(".year")
+      const descriptionElement = d3.select(".description")
+
+      function updateMap() {
+        const currentNatoCountries = getNatoCountriesUpToIndex(currentYearIndex)
+        const newNatoCountries = currentNatoCountries.filter((country) => !previousNatoCountries.includes(country))
+        const currentYear = natoExpansion[currentYearIndex].year
+        const currentDescription = natoExpansion[currentYearIndex].description
+        const currentEntry = natoExpansion[currentYearIndex]
+        const highlightedCountries = currentEntry.highlightCountries || []
+
+        // Update legend to show/hide highlight color
+        const highlightLegend = d3.select(".legend").select(".highlight-item")
+        if (highlightLegend.empty() && highlightedCountries.length > 0) {
+          // Add highlight to legend if it doesn't exist and we have highlighted countries
+          d3.select(".legend").append("div").attr("class", "legend-item highlight-item").html(`
+              <div class="legend-color" style="background-color: ${colorHighlight}"></div>
+              <span>Highlighted Countries</span>
+            `)
+        } else if (!highlightLegend.empty() && highlightedCountries.length === 0) {
+          // Remove highlight from legend if it exists and we don't have highlighted countries
+          highlightLegend.remove()
+        }
+
+        // Update the map colors with transitions
+        svg
+          .selectAll("path")
+          .transition()
+          .duration(0)
+          .attr("fill", (d) => {
+            const name = d.properties.name
+            if (newNatoCountries.includes(name)) {
+              return colorNatoNew
+            }
+            if (currentNatoCountries.includes(name)) {
+              return colorNato
+            }
+            if (name === "Russia" || name === "Russian Federation") {
+              return colorRussia
+            }
+            return colorOther
+          })
+          .transition()
+          .duration(1000) // First transition for highlight fade in
+          .attr("fill", (d) => {
+            const name = d.properties.name
+            if (highlightedCountries.includes(name)) {
+              return colorHighlight
+            }
+            if (newNatoCountries.includes(name)) {
+              return colorNatoNew
+            }
+            if (currentNatoCountries.includes(name)) {
+              return colorNato
+            }
+            if (name === "Russia" || name === "Russian Federation") {
+              return colorRussia
+            }
+            return colorOther
+          })
+          .transition()
+          .duration(2000) // Second transition for NATO member color change
+          .attr("fill", (d) => {
+            const name = d.properties.name
+            if (highlightedCountries.includes(name)) {
+              return colorHighlight
+            }
+            if (currentNatoCountries.includes(name)) {
+              return colorNato
+            }
+            if (name === "Russia" || name === "Russian Federation") {
+              return colorRussia
+            }
+            return colorOther
+          })
+
+        // Update display with year and description
+        yearElement.html(`${currentYear} (US President: ${currentEntry.president})`)
+        descriptionElement.html(
+          `${
+            currentEntry.isHistoricalContext ? '<span style="color: #ff4d6d">Historical Event:</span> ' : ""
+          }${currentDescription}${
+            currentEntry.annotation
+              ? '<br><br><span style="font-size: 0.9em; opacity: 0.8">' + currentEntry.annotation + "</span>"
+              : ""
+          }`,
+        )
+
+        // Update previous state after transition
+        previousNatoCountries = [...currentNatoCountries]
+      }
+
+      // Add keyboard event listener
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight") {
+          currentYearIndex = Math.min(currentYearIndex + 1, natoExpansion.length - 1)
+          updateMap()
+        } else if (event.key === "ArrowLeft") {
+          currentYearIndex = Math.max(currentYearIndex - 1, 0)
+          updateMap()
+        }
+      })
+
+      console.log({ width, height })
+
+      const svg = d3.select("svg").attr("width", width).attr("height", height)
+
+      // Define a Mercator projection.
+      const projection = d3.geoMercator().fitExtent(
+        [
+          [0, 0],
+          [width, height],
+        ], // SVG bounds
+        {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [-180, 75], // Northwest corner (full USA/Alaska coverage)
+                [180, 75], // Northeast corner (full Russia coverage)
+                [180, 10], // Southeast corner
+                [-180, 10], // Southwest corner
+                [-180, 75], // Close the polygon
+              ],
+            ],
+          },
+        },
+      )
+
+      const path = d3.geoPath().projection(projection)
+
+      // Add zoom behavior
+      const zoom = d3
+        .zoom()
+        .scaleExtent([1, 8]) // Min and max zoom levels
+        .on("zoom", (event) => {
+          svg.selectAll("path").attr("transform", event.transform)
+        })
+
+      svg.call(zoom)
+
+      // Load world GeoJSON data.
+      d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
+        .then((data) => {
+          // Create tooltip
+          const tooltip = d3.select(".tooltip")
+
+          svg
+            .selectAll("path")
+            .data(data.features)
+            .enter()
+            .append("path")
+            .attr("d", path)
+            .attr("fill", (d) => {
+              const name = d.properties.name
+              if (getNatoCountriesUpToIndex(currentYearIndex).includes(name)) {
+                return colorNato
+              }
+              if (name === "Russia" || name === "Russian Federation") {
+                return colorRussia
+              }
+              return colorOther
+            })
+            .attr("stroke", strokeColor)
+            .attr("stroke-width", "0.5")
+            .on("mousemove", (event, d) => {
+              tooltip
+                .style("opacity", 1)
+                .style("left", event.pageX + 10 + "px")
+                .style("top", event.pageY - 10 + "px")
+                .text(d.properties.name)
+            })
+            .on("mouseout", () => {
+              tooltip.style("opacity", 0)
+            })
+
+          // Show initial year
+          updateMap()
+        })
+        .catch((error) => {
+          console.error("Error loading GeoJSON data:", error)
+        })
+    </script>
+  </body>
+</html>
