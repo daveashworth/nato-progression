@@ -20,18 +20,28 @@
         height: 100vh;
         padding: 20px;
         box-sizing: border-box;
+        position: relative;
       }
       .header {
-        background-color: rgba(0, 0, 0, 0.3);
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        z-index: 1000;
+        background-color: rgba(0, 0, 0, 0.5);
         color: white;
         padding: 15px 20px;
         border-radius: 8px;
-        margin-bottom: 20px;
         font-family: Arial, sans-serif;
+        max-width: 80%;
+        margin: 0 auto;
       }
       .map-container {
-        flex: 1;
-        position: relative;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background-color: #1a365d;
         border-radius: 8px;
         overflow: hidden;
@@ -321,7 +331,7 @@
         },
         {
           year: 2020,
-          countries: ["North Macedonia"],
+          countries: ["Macedonia"],
           description: "North Macedonia Joins",
           isHistoricalContext: false,
           president: "Donald Trump",
@@ -344,6 +354,7 @@
           description: "Russian Invasion of Ukraine",
           isHistoricalContext: true,
           president: "Joe Biden",
+          highlightCountries: ["Ukraine"],
           annotation:
             "Russia launches a full-scale invasion of Ukraine, fundamentally altering European security architecture. This action leads traditionally neutral Finland and Sweden to abandon their long-standing policy of military non-alignment and seek NATO membership, significantly strengthening NATO's northern flank.",
         },
@@ -550,6 +561,7 @@
             .attr("d", path)
             .attr("fill", (d) => {
               const name = d.properties.name
+              console.log({ name })
               if (getNatoCountriesUpToIndex(currentYearIndex).includes(name)) {
                 return colorNato
               }
