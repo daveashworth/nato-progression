@@ -359,6 +359,26 @@
             "Russia launches a full-scale invasion of Ukraine, fundamentally altering European security architecture. This action leads traditionally neutral Finland and Sweden to abandon their long-standing policy of military non-alignment and seek NATO membership, significantly strengthening NATO's northern flank.",
         },
         {
+          year: 2022,
+          countries: [],
+          description: "Early Peace Negotiations",
+          isHistoricalContext: true,
+          president: "Joe Biden",
+          highlightCountries: ["Ukraine"],
+          annotation:
+            "Within a week of the invasion, Ukraine and Russia engage in negotiations in Belarus. Ukraine signals willingness to declare neutrality and abandon NATO aspirations, aligning with Russia's stated military objectives. However, Ukraine withdraws from these talks after being advised by the US to continue fighting rather than negotiate. This marks a critical turning point in the conflict's trajectory.",
+        },
+        {
+          year: 2022,
+          countries: [],
+          description: "Black Sea Strategic Significance",
+          isHistoricalContext: true,
+          president: "Joe Biden",
+          highlightCountries: ["Ukraine", "Romania", "Bulgaria", "Turkey", "Georgia"],
+          annotation:
+            "The Black Sea region represents a critical strategic chokepoint. With Romania, Bulgaria, and Turkey already NATO members, adding Ukraine and Georgia would complete NATO's encirclement of the Black Sea. This would effectively block Russia's warm-water access to the Mediterranean and significantly diminish its status as a naval power, highlighting why Russia views NATO expansion in this region as an existential threat to its great power status.",
+        },
+        {
           year: 2023,
           countries: ["Finland", "Sweden"],
           description: "Nordic Expansion",
@@ -507,8 +527,6 @@
         }
       })
 
-      console.log({ width, height })
-
       const svg = d3.select("svg").attr("width", width).attr("height", height)
 
       // Define a Mercator projection.
@@ -561,7 +579,7 @@
             .attr("d", path)
             .attr("fill", (d) => {
               const name = d.properties.name
-              console.log({ name })
+
               if (getNatoCountriesUpToIndex(currentYearIndex).includes(name)) {
                 return colorNato
               }
